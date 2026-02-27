@@ -1,30 +1,33 @@
 :root {
   color-scheme: light dark;
-  --bg: #f4f5f8;
-  --surface: #ffffff;
-  --text: #21252e;
-  --muted: #626b7a;
-  --border: #dfe3ea;
-  --accent: #4f6bd8;
-  --compare: #b06f15;
-  --touch: #b8455e;
-  --done: #2e8b57;
-  --shadow: 0 1px 2px rgba(20, 24, 33, 0.05), 0 4px 16px rgba(20, 24, 33, 0.06);
+  /* 温度のある中立色。純白・純黒は避ける。アクセントは1色、状態色は機能のため別建て。 */
+  --bg: #f4f4f1;
+  --raise: #fbfbf9;
+  --text: #1e2228;
+  --muted: #6a7079;
+  --line: #e4e4de;
+  --line-strong: #d4d4cc;
+  --accent: #4d5fcc;
+  --on-accent: #ffffff;
+  --compare: #ab7415;
+  --touch: #b1475f;
+  --done: #2f8a5b;
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161b;
-    --surface: #1c1f27;
-    --text: #e6e9ef;
-    --muted: #99a2b2;
-    --border: #2c323e;
-    --accent: #8da2ff;
-    --compare: #d6a35e;
-    --touch: #e0768d;
-    --done: #54c287;
-    --shadow: none;
+    --bg: #15171c;
+    --raise: #1b1e24;
+    --text: #e7e9ec;
+    --muted: #98a0ab;
+    --line: #292d35;
+    --line-strong: #363b45;
+    --accent: #8fa0f4;
+    --on-accent: #16181d;
+    --compare: #d8a45f;
+    --touch: #e17a92;
+    --done: #58c489;
   }
 }
 
@@ -34,21 +37,36 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.65;
-  padding: 32px 24px 48px;
+  line-height: 1.7;
+  padding: 56px 24px 64px;
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {
-  max-width: 980px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
+/* 見出しまわり: キッカー・ワードマーク・説明で階層をつける */
+.kicker {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
 .site-header {
-  margin-bottom: 24px;
+  margin-bottom: 40px;
 }
 
 .brand {
@@ -58,99 +76,130 @@ body {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   color: var(--text);
 }
 
 .brand-name {
-  font-size: 1.7rem;
+  font-size: 2rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .tagline {
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: 10px;
+  max-width: 62ch;
 }
 
+/* タブ: 箱ではなく下線。アクティブ下線はスケールでにじむ */
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 28px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 36px;
 }
 
 .tabs button {
   font: inherit;
   font-weight: 600;
+  font-size: 0.95rem;
   color: var(--muted);
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 6px 20px;
+  border: none;
+  padding: 0 2px 14px;
+  margin-bottom: -1px;
   cursor: pointer;
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    background-color 0.15s ease;
+  position: relative;
+  transition: color 0.18s ease;
+}
+
+.tabs button::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tabs button:hover {
+  color: var(--text);
 }
 
 .tabs button[aria-selected='true'] {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+}
+
+.tabs button[aria-selected='true']::after {
+  transform: scaleX(1);
 }
 
 .pane {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 24px;
-  box-shadow: var(--shadow);
-  animation: rise 0.3s ease both;
+  animation: rise 0.34s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
+/* 操作群: ラベルは小さなキッカー、余白でリズムをつくる */
 .controls {
   display: flex;
-  gap: 20px;
+  gap: 28px;
   align-items: flex-end;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .controls label {
-  font-size: 0.82rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   color: var(--muted);
   display: grid;
-  gap: 4px;
+  gap: 7px;
 }
 
 select {
-  font: inherit;
+  font-family: inherit;
   font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: normal;
   color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--raise);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
 input[type='range'] {
   accent-color: var(--accent);
-  width: 140px;
+  width: 148px;
+  cursor: pointer;
+}
+
+.controls output {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--text);
 }
 
 button:focus-visible,
 select:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
+/* 可視化ステージ: 単一の作業面なので罫線で囲う(カードの羅列ではない) */
 .stage {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--bg);
-  padding: 12px;
+  background: var(--raise);
+  padding: 16px;
   overflow: auto;
 }
 
@@ -162,7 +211,10 @@ input:focus-visible {
 
 .bar {
   fill: var(--accent);
-  fill-opacity: 0.75;
+  fill-opacity: 0.68;
+  transition:
+    fill 0.12s ease,
+    fill-opacity 0.12s ease;
 }
 
 .bar.compare {
@@ -181,18 +233,19 @@ input:focus-visible {
 }
 
 .cell {
-  fill: var(--surface);
-  stroke: var(--border);
+  fill: var(--raise);
+  stroke: var(--line);
   stroke-width: 1;
+  transition: fill 0.12s ease;
 }
 
 .cell.wall {
-  fill: color-mix(in srgb, var(--text) 70%, var(--surface));
+  fill: color-mix(in srgb, var(--text) 72%, var(--raise));
   stroke: none;
 }
 
 .cell.swamp {
-  fill: color-mix(in srgb, #0e8c85 30%, var(--surface));
+  fill: color-mix(in srgb, #0e8c85 28%, var(--raise));
 }
 
 .cell.frontier {
@@ -201,11 +254,11 @@ input:focus-visible {
 }
 
 .cell.visited {
-  fill: color-mix(in srgb, var(--accent) 28%, var(--surface));
+  fill: color-mix(in srgb, var(--accent) 26%, var(--raise));
 }
 
 .cell.swamp.visited {
-  fill: color-mix(in srgb, var(--accent) 28%, color-mix(in srgb, #0e8c85 30%, var(--surface)));
+  fill: color-mix(in srgb, var(--accent) 26%, color-mix(in srgb, #0e8c85 28%, var(--raise)));
 }
 
 .cell.path {
@@ -214,14 +267,18 @@ input:focus-visible {
 
 .cell-label {
   font: 700 13px var(--mono);
-  fill: var(--text);
+  fill: var(--on-accent);
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--text) 60%, transparent);
+  stroke-width: 0.6;
   pointer-events: none;
 }
 
 .legend {
   font-size: 0.78rem;
   color: var(--muted);
-  margin-top: 8px;
+  margin-top: 12px;
+  max-width: 70ch;
 }
 
 .player-row {
@@ -229,51 +286,61 @@ input:focus-visible {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 24px;
 }
 
 .primary {
   font: inherit;
   font-weight: 600;
-  color: #fff;
+  font-size: 0.9rem;
+  color: var(--on-accent);
   background: var(--accent);
   border: none;
-  border-radius: 10px;
-  padding: 8px 24px;
+  border-radius: 8px;
+  padding: 10px 28px;
   cursor: pointer;
-  transition: filter 0.15s ease;
-  min-width: 110px;
+  min-width: 112px;
+  transition:
+    filter 0.15s ease,
+    transform 0.06s ease;
 }
 
 .primary:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
+}
+
+.primary:active {
+  transform: translateY(1px);
 }
 
 .ghost {
   font: inherit;
-  font-size: 0.86rem;
-  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
   background: none;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  padding: 6px 14px;
+  padding: 9px 16px;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .ghost:hover {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: var(--accent);
+  color: var(--accent);
 }
 
 .speed {
-  font-size: 0.82rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   color: var(--muted);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .stats {
@@ -285,16 +352,17 @@ input:focus-visible {
 }
 
 .site-footer {
-  margin-top: 32px;
+  margin-top: 44px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
   font-size: 0.8rem;
   color: var(--muted);
-  text-align: center;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
