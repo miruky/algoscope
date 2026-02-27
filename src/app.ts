@@ -361,6 +361,7 @@ function buildSearchView(section: HTMLElement): void {
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
   <header class="site-header">
+    <p class="kicker">Algorithm Visualizer</p>
     <div class="brand">${BRAND_MARK}<span class="brand-name">algoscope</span></div>
     <p class="tagline">ソートとグラフ探索の動きを、SVGアニメーションで1ステップずつ観察する</p>
   </header>
