@@ -124,6 +124,7 @@ function buildSortView(section: HTMLElement): SortView {
       rect.setAttribute('width', String(Math.max(1, bw - 2)));
       rect.setAttribute('rx', '2');
       rect.setAttribute('class', 'bar');
+      rect.style.setProperty('--i', String(i)); // 入場アニメのスタッガ用
       setBar(rect, v);
       svg.appendChild(rect);
       return rect;
@@ -361,6 +362,7 @@ function buildSearchView(section: HTMLElement): void {
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
   <header class="site-header">
+    <p class="kicker">Algorithm Visualizer</p>
     <div class="brand">${BRAND_MARK}<span class="brand-name">algoscope</span></div>
     <p class="tagline">ソートとグラフ探索の動きを、SVGアニメーションで1ステップずつ観察する</p>
   </header>

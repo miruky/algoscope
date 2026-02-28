@@ -212,6 +212,9 @@ input:focus-visible {
 .bar {
   fill: var(--accent);
   fill-opacity: 0.68;
+  transform-box: fill-box;
+  animation: bar-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 7ms);
   transition:
     fill 0.12s ease,
     fill-opacity 0.12s ease;
@@ -236,7 +239,16 @@ input:focus-visible {
   fill: var(--raise);
   stroke: var(--line);
   stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
   transition: fill 0.12s ease;
+}
+
+/* 訪問・フロンティア・経路になった瞬間に小さく弾けて、進み方が目で追える */
+.cell.visited,
+.cell.frontier,
+.cell.path {
+  animation: cell-pop 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cell.wall {
@@ -367,6 +379,26 @@ input:focus-visible {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cell-pop {
+  from {
+    transform: scale(0.55);
+  }
+  to {
+    transform: scale(1);
   }
 }
 
