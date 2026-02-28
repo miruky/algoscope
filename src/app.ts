@@ -476,6 +476,7 @@ export function mountApp(root: HTMLElement): void {
     for (const t of tabs) {
       const active = t.id === id;
       t.tab.setAttribute('aria-selected', String(active));
+      t.tab.tabIndex = active ? 0 : -1; // ロービングtabindex
       t.view.hidden = !active;
     }
     state.tab = id;
@@ -488,13 +489,32 @@ export function mountApp(root: HTMLElement): void {
     });
   }
 
+  // tablistの作法: 左右で移動、Home/Endで端へ。移動先を選択しフォーカスする。
+  const tablistEl = root.querySelector('.tabs') as HTMLElement;
+  tablistEl.addEventListener('keydown', (e) => {
+    const current = tabs.findIndex((t) => t.id === state.tab);
+    let next = current;
+    if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    const target = tabs[next];
+    if (!target) return;
+    selectTab(target.id);
+    target.tab.focus();
+    pushUrl();
+  });
+
   // 復元したタブを反映(URL同期はユーザー操作まで控える)
   selectTab(state.tab);
 
-  // キーボード操作。フォーム部品にフォーカスがあるときは邪魔しない。
+  // キーボード操作。フォーム部品やボタン自身が処理する場面では邪魔しない。
+  // ボタンを除くのは、フォーカス中のボタンへのスペース/Enterと二重に発火させないため。
   document.addEventListener('keydown', (e) => {
     const tag = (e.target as HTMLElement | null)?.tagName;
-    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const controller = controllers[state.tab];
     if (e.key === ' ' || e.key === 'Spacebar') {
