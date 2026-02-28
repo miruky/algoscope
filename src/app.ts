@@ -1,11 +1,10 @@
 // 画面の組み立て。アルゴリズム本体は src/lib にあり、ここではトレースの再生
-// (rAFループ)とSVGの差分更新だけを行う。
+// (rAFループ)とSVGの差分更新、URLとの状態同期だけを行う。
 
 import {
   SORT_ALGORITHMS,
   makeDataset,
   traceSort,
-  type DatasetKind,
   type SortAlgorithmId,
   type SortTrace,
 } from './lib/sorts';
@@ -17,6 +16,8 @@ import {
   type SearchAlgorithmId,
   type SearchTrace,
 } from './lib/graphsearch';
+import { mulberry32, randomSeed } from './lib/random';
+import { DEFAULT_STATE, decodeState, encodeState, type AppState } from './lib/state';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -25,6 +26,13 @@ const BRAND_MARK =
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** キーボード操作のために各ビューが公開する操作。 */
+interface ViewController {
+  playPause: () => void;
+  step: () => void;
+  regenerate: () => void;
 }
 
 /** rAFでトレースを進める再生器。speedはフレームあたりのステップ数。 */
@@ -61,11 +69,7 @@ class Player {
   }
 }
 
-interface SortView {
-  refresh: () => void;
-}
-
-function buildSortView(section: HTMLElement): SortView {
+function buildSortView(section: HTMLElement, state: AppState, pushUrl: () => void): ViewController {
   section.innerHTML = `
     <div class="controls">
       <label>アルゴリズム
@@ -105,7 +109,13 @@ function buildSortView(section: HTMLElement): SortView {
   const playEl = section.querySelector('#sort-play') as HTMLButtonElement;
   const statsEl = section.querySelector('#sort-stats') as HTMLParagraphElement;
 
-  let data = makeDataset('random', 40);
+  // 復元した状態をコントロールへ反映する
+  algoEl.value = state.sortAlgo;
+  kindEl.value = state.sortKind;
+  sizeEl.value = String(state.sortSize);
+  sizeOutEl.textContent = String(state.sortSize);
+
+  let data: number[] = [];
   let trace: SortTrace;
   let values: number[] = [];
   let cursor = 0;
@@ -178,8 +188,10 @@ function buildSortView(section: HTMLElement): SortView {
 
   function reset(regenerate: boolean): void {
     player.pause();
-    if (regenerate) data = makeDataset(kindEl.value as DatasetKind, Number(sizeEl.value));
-    trace = traceSort(algoEl.value as SortAlgorithmId, data);
+    if (regenerate || data.length === 0) {
+      data = makeDataset(state.sortKind, state.sortSize, mulberry32(state.sortSeed));
+    }
+    trace = traceSort(state.sortAlgo, data);
     values = [...trace.initial];
     cursor = 0;
     done = new Set();
@@ -195,24 +207,51 @@ function buildSortView(section: HTMLElement): SortView {
   (section.querySelector('#sort-reset') as HTMLButtonElement).addEventListener('click', () =>
     reset(false),
   );
-  (section.querySelector('#sort-new') as HTMLButtonElement).addEventListener('click', () =>
-    reset(true),
-  );
-  algoEl.addEventListener('change', () => reset(false));
-  kindEl.addEventListener('change', () => reset(true));
+  (section.querySelector('#sort-new') as HTMLButtonElement).addEventListener('click', () => {
+    state.sortSeed = randomSeed();
+    pushUrl();
+    reset(true);
+  });
+  algoEl.addEventListener('change', () => {
+    state.sortAlgo = algoEl.value as SortAlgorithmId;
+    pushUrl();
+    reset(false);
+  });
+  kindEl.addEventListener('change', () => {
+    state.sortKind = kindEl.value as AppState['sortKind'];
+    pushUrl();
+    reset(true);
+  });
   sizeEl.addEventListener('input', () => {
     sizeOutEl.textContent = sizeEl.value;
+    state.sortSize = Number(sizeEl.value);
+    pushUrl();
     reset(true);
   });
   (section.querySelector('#sort-speed') as HTMLInputElement).addEventListener('input', (e) => {
     player.speed = Number((e.target as HTMLInputElement).value);
   });
 
-  reset(false);
-  return { refresh: () => paint() };
+  reset(true);
+  return {
+    playPause: () => (player.playing ? player.pause() : player.play()),
+    step: () => {
+      player.pause();
+      advance(1);
+    },
+    regenerate: () => {
+      state.sortSeed = randomSeed();
+      pushUrl();
+      reset(true);
+    },
+  };
 }
 
-function buildSearchView(section: HTMLElement): void {
+function buildSearchView(
+  section: HTMLElement,
+  state: AppState,
+  pushUrl: () => void,
+): ViewController {
   section.innerHTML = `
     <div class="controls">
       <label>アルゴリズム
@@ -243,9 +282,17 @@ function buildSearchView(section: HTMLElement): void {
   const algoEl = section.querySelector('#g-algo') as HTMLSelectElement;
   const wallEl = section.querySelector('#g-wall') as HTMLInputElement;
   const swampEl = section.querySelector('#g-swamp') as HTMLInputElement;
+  const wallOutEl = section.querySelector('#g-wall-out') as HTMLOutputElement;
+  const swampOutEl = section.querySelector('#g-swamp-out') as HTMLOutputElement;
   const svg = section.querySelector('#g-svg') as SVGSVGElement;
   const playEl = section.querySelector('#g-play') as HTMLButtonElement;
   const statsEl = section.querySelector('#g-stats') as HTMLParagraphElement;
+
+  algoEl.value = state.searchAlgo;
+  wallEl.value = String(state.wall);
+  swampEl.value = String(state.swamp);
+  wallOutEl.textContent = `${state.wall}%`;
+  swampOutEl.textContent = `${state.swamp}%`;
 
   const COLS = 28;
   const ROWS = 16;
@@ -323,9 +370,15 @@ function buildSearchView(section: HTMLElement): void {
   function reset(regenerate: boolean): void {
     player.pause();
     if (regenerate) {
-      grid = makeGrid(COLS, ROWS, Number(wallEl.value) / 100, Number(swampEl.value) / 100);
+      grid = makeGrid(
+        COLS,
+        ROWS,
+        state.wall / 100,
+        state.swamp / 100,
+        mulberry32(state.searchSeed),
+      );
     }
-    trace = traceSearch(algoEl.value as SearchAlgorithmId, grid);
+    trace = traceSearch(state.searchAlgo, grid);
     cursor = 0;
     rebuildGrid();
     stats();
@@ -339,16 +392,24 @@ function buildSearchView(section: HTMLElement): void {
   (section.querySelector('#g-reset') as HTMLButtonElement).addEventListener('click', () =>
     reset(false),
   );
-  (section.querySelector('#g-new') as HTMLButtonElement).addEventListener('click', () =>
-    reset(true),
-  );
-  algoEl.addEventListener('change', () => reset(false));
-  for (const [el, out, unit] of [
-    [wallEl, '#g-wall-out', '%'],
-    [swampEl, '#g-swamp-out', '%'],
+  (section.querySelector('#g-new') as HTMLButtonElement).addEventListener('click', () => {
+    state.searchSeed = randomSeed();
+    pushUrl();
+    reset(true);
+  });
+  algoEl.addEventListener('change', () => {
+    state.searchAlgo = algoEl.value as SearchAlgorithmId;
+    pushUrl();
+    reset(false);
+  });
+  for (const [el, out, key] of [
+    [wallEl, wallOutEl, 'wall'],
+    [swampEl, swampOutEl, 'swamp'],
   ] as const) {
     el.addEventListener('input', () => {
-      (section.querySelector(out) as HTMLOutputElement).textContent = `${el.value}${unit}`;
+      out.textContent = `${el.value}%`;
+      state[key] = Number(el.value);
+      pushUrl();
       reset(true);
     });
   }
@@ -356,10 +417,31 @@ function buildSearchView(section: HTMLElement): void {
     player.speed = Number((e.target as HTMLInputElement).value);
   });
 
-  reset(false);
+  reset(true);
+  return {
+    playPause: () => (player.playing ? player.pause() : player.play()),
+    step: () => {
+      player.pause();
+      advance(1);
+    },
+    regenerate: () => {
+      state.searchSeed = randomSeed();
+      pushUrl();
+      reset(true);
+    },
+  };
 }
 
 export function mountApp(root: HTMLElement): void {
+  // ハッシュがあれば復元、なければ新しいseedで毎回ちがう初期画面にする
+  const state: AppState = location.hash
+    ? decodeState(location.hash)
+    : { ...DEFAULT_STATE, sortSeed: randomSeed(), searchSeed: randomSeed() };
+
+  const pushUrl = (): void => {
+    history.replaceState(null, '', `#${encodeState(state)}`);
+  };
+
   root.innerHTML = `
   <header class="site-header">
     <p class="kicker">Algorithm Visualizer</p>
@@ -375,26 +457,74 @@ export function mountApp(root: HTMLElement): void {
     <section class="pane" id="view-search" role="tabpanel" aria-labelledby="tab-search" hidden></section>
   </main>
   <footer class="site-footer">
-    <p>すべてブラウザ内で動き、データが外部へ送信されることはない。</p>
+    <p>すべてブラウザ内で動き、データが外部へ送信されることはない。スペースで再生・停止、→で1ステップ、Nで作り直し。</p>
   </footer>`;
 
   const sortSection = root.querySelector('#view-sort') as HTMLElement;
   const searchSection = root.querySelector('#view-search') as HTMLElement;
-  buildSortView(sortSection);
-  buildSearchView(searchSection);
+  const controllers: Record<AppState['tab'], ViewController> = {
+    sort: buildSortView(sortSection, state, pushUrl),
+    search: buildSearchView(searchSection, state, pushUrl),
+  };
 
   const tabs = [
-    { tab: root.querySelector('#tab-sort') as HTMLButtonElement, view: sortSection },
-    { tab: root.querySelector('#tab-search') as HTMLButtonElement, view: searchSection },
+    { id: 'sort' as const, tab: root.querySelector('#tab-sort') as HTMLButtonElement, view: sortSection },
+    { id: 'search' as const, tab: root.querySelector('#tab-search') as HTMLButtonElement, view: searchSection },
   ];
-  for (const { tab, view } of tabs) {
-    tab.addEventListener('click', () => {
-      for (const other of tabs) {
-        const active = other.tab === tab;
-        other.tab.setAttribute('aria-selected', String(active));
-        other.view.hidden = !active;
-      }
-      view.hidden = false;
+
+  function selectTab(id: AppState['tab']): void {
+    for (const t of tabs) {
+      const active = t.id === id;
+      t.tab.setAttribute('aria-selected', String(active));
+      t.tab.tabIndex = active ? 0 : -1; // ロービングtabindex
+      t.view.hidden = !active;
+    }
+    state.tab = id;
+  }
+
+  for (const t of tabs) {
+    t.tab.addEventListener('click', () => {
+      selectTab(t.id);
+      pushUrl();
     });
   }
+
+  // tablistの作法: 左右で移動、Home/Endで端へ。移動先を選択しフォーカスする。
+  const tablistEl = root.querySelector('.tabs') as HTMLElement;
+  tablistEl.addEventListener('keydown', (e) => {
+    const current = tabs.findIndex((t) => t.id === state.tab);
+    let next = current;
+    if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    const target = tabs[next];
+    if (!target) return;
+    selectTab(target.id);
+    target.tab.focus();
+    pushUrl();
+  });
+
+  // 復元したタブを反映(URL同期はユーザー操作まで控える)
+  selectTab(state.tab);
+
+  // キーボード操作。フォーム部品やボタン自身が処理する場面では邪魔しない。
+  // ボタンを除くのは、フォーカス中のボタンへのスペース/Enterと二重に発火させないため。
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const controller = controllers[state.tab];
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      controller.playPause();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      controller.step();
+    } else if (e.key === 'n' || e.key === 'N') {
+      controller.regenerate();
+    }
+  });
 }
