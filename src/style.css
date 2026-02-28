@@ -402,6 +402,40 @@ input:focus-visible {
   }
 }
 
+@media (max-width: 640px) {
+  body {
+    padding: 32px 16px 48px;
+  }
+
+  .brand-name {
+    font-size: 1.6rem;
+  }
+
+  /* 横並びだと選択肢が画面外へはみ出すので、操作は縦に全幅で積む */
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .controls label,
+  .controls select,
+  .controls input[type='range'] {
+    width: 100%;
+  }
+
+  .primary {
+    min-width: 96px;
+    padding: 10px 20px;
+  }
+
+  /* 折り返したら統計は独立行に置いて読みやすくする */
+  .stats {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
