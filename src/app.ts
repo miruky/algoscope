@@ -124,6 +124,7 @@ function buildSortView(section: HTMLElement): SortView {
       rect.setAttribute('width', String(Math.max(1, bw - 2)));
       rect.setAttribute('rx', '2');
       rect.setAttribute('class', 'bar');
+      rect.style.setProperty('--i', String(i)); // 入場アニメのスタッガ用
       setBar(rect, v);
       svg.appendChild(rect);
       return rect;
