@@ -5,22 +5,49 @@
   --raise: #fbfbf9;
   --text: #1e2228;
   --muted: #6a7079;
+  --faint: #9a9f97;
   --line: #e4e4de;
   --line-strong: #d4d4cc;
   --accent: #4d5fcc;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --on-accent: #ffffff;
   --compare: #ab7415;
   --touch: #b1475f;
   --done: #2f8a5b;
+  --serif: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* 明示ダーク: 沈んだ地に合わせてアクセントと罫線を上げる(単なる反転ではない) */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #15171c;
+  --raise: #1b1e24;
+  --text: #e7e9ec;
+  --muted: #98a0ab;
+  --faint: #6b727c;
+  --line: #292d35;
+  --line-strong: #363b45;
+  --accent: #8fa0f4;
+  --on-accent: #16181d;
+  --compare: #d8a45f;
+  --touch: #e17a92;
+  --done: #58c489;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* JSが無い場合の保険: data-theme未設定のときだけOSのダークに従う */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    color-scheme: dark;
     --bg: #15171c;
     --raise: #1b1e24;
     --text: #e7e9ec;
     --muted: #98a0ab;
+    --faint: #6b727c;
     --line: #292d35;
     --line-strong: #363b45;
     --accent: #8fa0f4;
@@ -41,12 +68,24 @@
   display: none !important;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 body {
   font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
-  padding: 56px 24px 64px;
+  padding: 56px 24px 72px;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -57,40 +96,90 @@ body {
 
 /* 見出しまわり: キッカー・ワードマーク・説明で階層をつける */
 .kicker {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .site-header {
-  margin-bottom: 40px;
+  margin-bottom: 44px;
+}
+
+.masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
 }
 
 .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   color: var(--text);
 }
 
+/* ワードマークは性格のある明朝/セリフで、本文のサンセリフと差をつける */
 .brand-name {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: var(--serif);
+  font-size: 2.2rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1;
 }
 
 .tagline {
   color: var(--muted);
-  margin-top: 10px;
-  max-width: 62ch;
+  margin-top: 14px;
+  max-width: 60ch;
+}
+
+/* テーマ切替: 小さなピル。地色になじむ淡い罫線、ホバーでアクセント */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 6px 13px 6px 11px;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.theme-icon {
+  width: 15px;
+  height: 15px;
+  color: currentColor;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle[data-choice='dark'] .theme-icon {
+  transform: rotate(180deg);
+}
+
+.theme-label {
+  font-variant-numeric: tabular-nums;
 }
 
 /* タブ: 箱ではなく下線。アクティブ下線はスケールでにじむ */
@@ -98,7 +187,7 @@ body {
   display: flex;
   gap: 28px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 36px;
+  margin-bottom: 40px;
 }
 
 .tabs button {
@@ -152,7 +241,7 @@ body {
 }
 
 .controls label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--muted);
@@ -189,7 +278,8 @@ input[type='range'] {
 
 button:focus-visible,
 select:focus-visible,
-input:focus-visible {
+input:focus-visible,
+.theme-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -293,12 +383,67 @@ input:focus-visible {
   max-width: 70ch;
 }
 
+/* 計測値の帯: 大きなタブ揃え数字でインストルメント感を出す。箱ではなく罫線で仕切る */
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.metric {
+  flex: 1 1 0;
+  min-width: 96px;
+  padding: 16px 22px 4px 0;
+  margin-right: 22px;
+  border-right: 1px solid var(--line);
+}
+
+.metric:last-child {
+  border-right: none;
+  margin-right: 0;
+}
+
+.metric dt {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.metric dd {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.55rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-top: 6px;
+}
+
+.metric--note dd {
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+/* スクラブ: 全幅のレール。任意位置へ飛べる */
+.timeline {
+  margin-top: 24px;
+}
+
+.scrub {
+  width: 100%;
+  height: 22px;
+}
+
 .player-row {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .primary {
@@ -345,30 +490,62 @@ input:focus-visible {
   color: var(--accent);
 }
 
+/* 前後ステップ: 2つを隣接させたまとまり */
+.step-group {
+  display: inline-flex;
+}
+
+.step-btn {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 7px 14px;
+  min-width: 0;
+}
+
+.step-group .step-btn:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.step-group .step-btn:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
 .speed {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--muted);
   display: inline-flex;
   align-items: center;
   gap: 10px;
-}
-
-.stats {
-  font-size: 0.82rem;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
   margin-left: auto;
 }
 
+.speed input[type='range'] {
+  width: 116px;
+}
+
 .site-footer {
-  margin-top: 44px;
+  margin-top: 48px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+kbd {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text);
+  background: var(--raise);
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin: 0 1px;
 }
 
 @keyframes rise {
@@ -408,7 +585,7 @@ input:focus-visible {
   }
 
   .brand-name {
-    font-size: 1.6rem;
+    font-size: 1.8rem;
   }
 
   /* 横並びだと選択肢が画面外へはみ出すので、操作は縦に全幅で積む */
@@ -424,15 +601,31 @@ input:focus-visible {
     width: 100%;
   }
 
+  .metric {
+    flex-basis: 40%;
+    border-right: none;
+    margin-right: 0;
+    padding-right: 12px;
+  }
+
+  .metric dd {
+    font-size: 1.35rem;
+  }
+
   .primary {
     min-width: 96px;
     padding: 10px 20px;
   }
 
-  /* 折り返したら統計は独立行に置いて読みやすくする */
-  .stats {
+  .speed {
     margin-left: 0;
     width: 100%;
+    margin-top: 4px;
+  }
+
+  .speed input[type='range'] {
+    width: 100%;
+    flex: 1;
   }
 }
 
