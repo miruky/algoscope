@@ -1,7 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="algoscopeのロゴ">
   <title>algoscope</title>
-  <rect x="6" y="32" width="10" height="26" rx="3" fill="#37434b"/>
-  <rect x="19" y="18" width="10" height="40" rx="3" fill="#4f6bd8"/>
-  <rect x="32" y="42" width="10" height="16" rx="3" fill="#37434b" fill-opacity="0.6"/>
-  <rect x="45" y="6" width="10" height="52" rx="3" fill="#4f6bd8" fill-opacity="0.55"/>
+  <style>
+    svg { --ink: #37434b; --accent: #4d5fcc; }
+    @media (prefers-color-scheme: dark) {
+      svg { --ink: #c9d2d8; --accent: #8fa0f4; }
+    }
+  </style>
+  <rect x="8" y="34" width="9" height="22" rx="2" fill="var(--ink)"/>
+  <rect x="20" y="22" width="9" height="34" rx="2" fill="var(--accent)"/>
+  <rect x="32" y="42" width="9" height="14" rx="2" fill="var(--ink)" fill-opacity="0.55"/>
+  <rect x="44" y="10" width="9" height="46" rx="2" fill="var(--ink)" fill-opacity="0.7"/>
 </svg>
