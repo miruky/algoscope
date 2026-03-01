@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { makeGrid, traceSearch, SWAMP_COST, type Grid } from './graphsearch';
 
+// 決定的な迷路を作るためのmulberry32相当の乱数
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function gridOf(rows: string[]): Grid {
   // 記号: S=start G=goal #=壁 ~=沼 .=空
   const cols = rows[0]?.length ?? 0;
@@ -54,11 +65,29 @@ describe('traceSearch', () => {
 
   it('到達不能なら found=false', () => {
     const grid = gridOf(['S#G']);
-    for (const algorithm of ['bfs', 'dfs', 'dijkstra'] as const) {
+    for (const algorithm of ['bfs', 'dfs', 'dijkstra', 'astar'] as const) {
       const result = traceSearch(algorithm, grid);
       expect(result.found).toBe(false);
       expect(result.cost).toBe(Infinity);
     }
+  });
+
+  it('A*はダイクストラ法と同じ最小コストの経路に到達する', () => {
+    const grid = gridOf(['S~G', '...']);
+    const astar = traceSearch('astar', grid);
+    const dijkstra = traceSearch('dijkstra', grid);
+    expect(astar.found).toBe(true);
+    expect(astar.cost).toBe(dijkstra.cost);
+    expect(astar.cost).toBe(4); // 沼の直進(6)より回り道(4)
+  });
+
+  it('A*はゴール方向を優先し、ダイクストラ法より訪問が増えない', () => {
+    const grid = makeGrid(20, 14, 0.1, 0.1, seededRandom(11));
+    const astar = traceSearch('astar', grid);
+    const dijkstra = traceSearch('dijkstra', grid);
+    if (!astar.found || !dijkstra.found) return;
+    expect(astar.cost).toBe(dijkstra.cost);
+    expect(astar.visited).toBeLessThanOrEqual(dijkstra.visited);
   });
 
   it('トレースはvisit・frontier・pathの整合が取れている', () => {
