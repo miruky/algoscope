@@ -25,12 +25,13 @@ export interface SearchTrace {
   visited: number;
 }
 
-export type SearchAlgorithmId = 'bfs' | 'dfs' | 'dijkstra';
+export type SearchAlgorithmId = 'bfs' | 'dfs' | 'dijkstra' | 'astar';
 
 export const SEARCH_ALGORITHMS: { id: SearchAlgorithmId; label: string; note: string }[] = [
   { id: 'bfs', label: '幅優先探索', note: '重みなしの最短経路' },
   { id: 'dfs', label: '深さ優先探索', note: '最短とは限らない' },
   { id: 'dijkstra', label: 'ダイクストラ法', note: '重みつきの最短経路' },
+  { id: 'astar', label: 'A*探索', note: 'ゴール方向を優先する最短経路' },
 ];
 
 export const SWAMP_COST = 5;
@@ -156,12 +157,77 @@ function dijkstra(grid: Grid): SearchTrace {
   };
 }
 
+/** マンハッタン距離。1手の最小コストが1なので、ヒューリスティックとして許容的。 */
+function manhattan(grid: Grid, a: number, b: number): number {
+  const ax = a % grid.cols;
+  const ay = Math.floor(a / grid.cols);
+  const bx = b % grid.cols;
+  const by = Math.floor(b / grid.cols);
+  return Math.abs(ax - bx) + Math.abs(ay - by);
+}
+
+// A*。評価値 f = g(実コスト) + h(ゴールまでの推定)が最小のセルを選ぶ。
+// ヒューリスティックが許容的なのでダイクストラ法と同じ最短コストに収束しつつ、
+// ゴール方向を優先するため訪問数が減る。
+function astar(grid: Grid): SearchTrace {
+  const steps: SearchStep[] = [];
+  const cameFrom = new Map<number, number>();
+  const g = new Map<number, number>([[grid.start, 0]]);
+  const done = new Set<number>();
+  let visited = 0;
+  let found = false;
+
+  for (;;) {
+    let current = -1;
+    let bestF = Infinity;
+    let currentG = Infinity;
+    for (const [cell, gc] of g) {
+      if (done.has(cell)) continue;
+      const f = gc + manhattan(grid, cell, grid.goal);
+      if (f < bestF) {
+        bestF = f;
+        currentG = gc;
+        current = cell;
+      }
+    }
+    if (current === -1) break;
+    done.add(current);
+    steps.push({ type: 'visit', cell: current });
+    visited += 1;
+    if (current === grid.goal) {
+      found = true;
+      break;
+    }
+    for (const next of neighbors(grid, current)) {
+      if (done.has(next)) continue;
+      const candidate = currentG + cellCost(grid, next);
+      if (candidate < (g.get(next) ?? Infinity)) {
+        g.set(next, candidate);
+        cameFrom.set(next, current);
+        steps.push({ type: 'frontier', cell: next });
+      }
+    }
+  }
+
+  const path = found ? buildPath(cameFrom, grid, steps) : { length: 0, cost: Infinity };
+  return {
+    algorithm: 'astar',
+    steps,
+    found,
+    pathLength: path.length,
+    cost: path.cost,
+    visited,
+  };
+}
+
 /** グリッドに対して探索を実行し、訪問順のトレースを返す。 */
 export function traceSearch(algorithm: SearchAlgorithmId, grid: Grid): SearchTrace {
   if (grid.walls.has(grid.start) || grid.walls.has(grid.goal)) {
     return { algorithm, steps: [], found: false, pathLength: 0, cost: Infinity, visited: 0 };
   }
-  return algorithm === 'dijkstra' ? dijkstra(grid) : searchWithQueue(grid, algorithm);
+  if (algorithm === 'dijkstra') return dijkstra(grid);
+  if (algorithm === 'astar') return astar(grid);
+  return searchWithQueue(grid, algorithm);
 }
 
 /** ランダムな壁と沼を持つグリッドを作る。startとgoalは必ず空ける。 */
