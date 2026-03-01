@@ -284,6 +284,39 @@ input:focus-visible,
   outline-offset: 2px;
 }
 
+/* アルゴリズムの解説: いま見ているものを散文で説明し、計算量を添える */
+.algo-info {
+  margin: 4px 0 26px;
+  max-width: 74ch;
+}
+
+.algo-desc {
+  font-size: 0.9rem;
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.algo-facts {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+
+.algo-facts span {
+  white-space: nowrap;
+}
+
+.algo-facts span + span::before {
+  content: '·';
+  margin: 0 0.7em;
+  color: var(--faint);
+}
+
 /* 可視化ステージ: 単一の作業面なので罫線で囲う(カードの羅列ではない) */
 .stage {
   border: 1px solid var(--line);
