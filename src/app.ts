@@ -17,6 +17,7 @@ import {
   type SearchTrace,
 } from './lib/graphsearch';
 import { searchFrameAt, sortFrameAt } from './lib/frames';
+import { SEARCH_INFO, SORT_INFO } from './lib/algoinfo';
 import { mulberry32, randomSeed } from './lib/random';
 import { DEFAULT_STATE, decodeState, encodeState, type AppState } from './lib/state';
 import {
@@ -127,6 +128,7 @@ function buildSortView(section: HTMLElement, state: AppState, pushUrl: () => voi
       </label>
       <button type="button" id="sort-new" class="ghost">新しいデータ</button>
     </div>
+    <div class="algo-info" id="sort-info"></div>
     <div class="stage"><svg id="sort-svg" viewBox="0 0 720 240" role="img" aria-label="ソートの様子を表す棒グラフ"><title>ソートの様子</title></svg></div>
     <dl class="metrics">
       <div class="metric"><dt>ステップ</dt><dd id="sort-m-step">0 / 0</dd></div>
@@ -148,6 +150,7 @@ function buildSortView(section: HTMLElement, state: AppState, pushUrl: () => voi
   const cmpOut = section.querySelector('#sort-m-cmp') as HTMLElement;
   const wrOut = section.querySelector('#sort-m-wr') as HTMLElement;
   const orderOut = section.querySelector('#sort-m-o') as HTMLElement;
+  const infoEl = section.querySelector('#sort-info') as HTMLElement;
   const srEl = section.querySelector('#sort-sr') as HTMLElement;
 
   algoEl.value = state.sortAlgo;
@@ -228,7 +231,9 @@ function buildSortView(section: HTMLElement, state: AppState, pushUrl: () => voi
     trace = traceSort(state.sortAlgo, data);
     cursor = 0;
     scrubEl.max = String(trace.steps.length);
-    orderOut.textContent = SORT_ALGORITHMS.find((a) => a.id === state.sortAlgo)?.order ?? '';
+    const info = SORT_INFO[state.sortAlgo];
+    orderOut.textContent = info.average;
+    infoEl.innerHTML = `<p class="algo-desc">${esc(info.desc)}</p><p class="algo-facts"><span>最悪 ${esc(info.worst)}</span><span>空間 ${esc(info.space)}</span><span>${info.stable ? '安定' : '不安定'}</span></p>`;
     srEl.textContent = '';
     rebuildBars(trace.initial);
     render();
@@ -307,6 +312,7 @@ function buildSearchView(
       </label>
       <button type="button" id="g-new" class="ghost">新しい迷路</button>
     </div>
+    <div class="algo-info" id="g-info"></div>
     <div class="stage"><svg id="g-svg" role="img" aria-label="グラフ探索の様子を表す迷路"><title>グラフ探索の様子</title></svg></div>
     <p class="legend">濃い四角が壁、緑がかったマスは移動コスト5の沼。Sから出発しGを探す。薄い色が訪問済み、輪郭つきがフロンティア、濃い線色が見つかった経路。</p>
     <dl class="metrics">
@@ -330,6 +336,7 @@ function buildSearchView(
   const visitedOut = section.querySelector('#g-m-visited') as HTMLElement;
   const pathOut = section.querySelector('#g-m-path') as HTMLElement;
   const costOut = section.querySelector('#g-m-cost') as HTMLElement;
+  const infoEl = section.querySelector('#g-info') as HTMLElement;
   const srEl = section.querySelector('#g-sr') as HTMLElement;
 
   algoEl.value = state.searchAlgo;
@@ -428,11 +435,19 @@ function buildSearchView(
   function reset(regenerate: boolean): void {
     player.pause();
     if (regenerate) {
-      grid = makeGrid(COLS, ROWS, state.wall / 100, state.swamp / 100, mulberry32(state.searchSeed));
+      grid = makeGrid(
+        COLS,
+        ROWS,
+        state.wall / 100,
+        state.swamp / 100,
+        mulberry32(state.searchSeed),
+      );
     }
     trace = traceSearch(state.searchAlgo, grid);
     cursor = 0;
     scrubEl.max = String(trace.steps.length);
+    const info = SEARCH_INFO[state.searchAlgo];
+    infoEl.innerHTML = `<p class="algo-desc">${esc(info.desc)}</p><p class="algo-facts"><span>時間 ${esc(info.time)}</span><span>${esc(info.optimal)}</span></p>`;
     srEl.textContent = '';
     rebuildGrid();
     render();
@@ -572,8 +587,16 @@ export function mountApp(root: HTMLElement): void {
   };
 
   const tabs = [
-    { id: 'sort' as const, tab: root.querySelector('#tab-sort') as HTMLButtonElement, view: sortSection },
-    { id: 'search' as const, tab: root.querySelector('#tab-search') as HTMLButtonElement, view: searchSection },
+    {
+      id: 'sort' as const,
+      tab: root.querySelector('#tab-sort') as HTMLButtonElement,
+      view: sortSection,
+    },
+    {
+      id: 'search' as const,
+      tab: root.querySelector('#tab-search') as HTMLButtonElement,
+      view: searchSection,
+    },
   ];
 
   function selectTab(id: AppState['tab']): void {
